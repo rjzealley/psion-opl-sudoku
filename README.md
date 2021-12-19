@@ -12,7 +12,7 @@ There are two files: SUDOKU1.OPL and SUDOKU2.OPL. On your Psion PDA, compile bot
 The simple menu has 4 choices which require upper case responses:
 L : Load a puzzle
 S : Save a puzzle (see below)
-E : End
+E : End program
 Esc : start solving
 
 When saving, enter a 3 digit puzzle number, e.g. 123, and the file will saved in /OPD/ as SUD123.DAT. On completion of the puzzle a file named SUD123F.DAT is created containing the solved puzzle.
