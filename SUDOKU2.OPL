@@ -1,0 +1,122 @@
+PROC pgup%:
+LOCAL fin%,b%,x%,y%,z%,p%,w%
+fin%=0
+IF guess%>0
+	DO
+		IF nl%>0
+			p%=0
+			nl%=nl%-4
+			b%=lis%(nl%+4)
+			IF b%<guess%
+				guess%=b%
+				p%=1
+				BREAK
+			ENDIF
+			x1%=lis%(nl%+1)
+			y1%=lis%(nl%+2)
+			z1%=lis%(nl%+3)
+			spin:(x1%,y1%,z1%,0)
+		ENDIF
+	UNTIL nl%<=0
+ELSE
+	p%=-1
+	AT 13,1 : PRINT"INSOLUBLE" : PAUSE 0 : STOP
+ENDIF
+nl%=nl%+4
+RETURN p%
+ENDP
+
+PROC splag:(p%,q%)
+LOCAL c$(1)
+c$="."
+IF p%=2 OR p%=5 OR p%=8
+	IF q%=2 OR q%=5 OR q%=8
+		c$="+"
+	ENDIF
+ENDIF
+AT p%,q%
+PRINT c$
+AT p%,q%
+ENDP
+
+PROC sets:(p%,q%,x%)
+LOCAL c$(10),tt%,t%,u%,a%,b%,c%,d%,dd%
+tt%=PEEKB(cub%+(p%-1)*10+q%)
+IF tt%<>46
+	spin:(p%,q%,tt%,0)
+ENDIF
+IF x%>48
+	t%=chq%:(p%,q%,x%)
+	IF t%<>0
+		BEEP 16,900
+	ELSE
+		spin:(p%,q%,x%,2)
+	ENDIF
+ENDIF
+RETURN t%
+ENDP
+
+PROC spin:(p%,q%,x%,k%)
+LOCAL c$(10),d$(10),e$(1),t%,d%,a%,b%
+LOCAL v$(1),lot$(1),lot%,u%,v%,xt%,xc%
+d%=x%-48
+xc%=x% : xt%=x%
+IF k%=0
+	xt%=46 : xc%=46
+	nuts%=nuts%-1
+ELSE
+	xt%=120
+	nuts%=nuts%+1
+ENDIF
+POKEB cub%+(p%-1)*10+q%,xc%
+POKEB lin%+(p%-1)*10+d%,xt%
+POKEB col%+(q%-1)*10+d%,xt%
+t%=cons%:(p%,q%)
+POKEB squ%+(t%-1)*10+d%,xt%
+IF xt%=46
+	splag:(p%,q%)
+ELSE
+	AT p%,q%
+	PRINT CHR$(xc%)
+	AT p%,q%
+ENDIF
+IF k%=1
+	lis%(nl%+1)=p%
+	lis%(nl%+2)=q%
+	lis%(nl%+3)=x%
+	lis%(nl%+4)=guess%
+	nl%=nl%+4
+ENDIF
+ENDP
+
+PROC chq%:(p%,q%,x%)
+LOCAL c$(10),e$(1),xp%,y%,z%,t%
+LOCAL u%,v%,r%,s%,d%,pz%
+r%=0 : d%=x%-48
+IF PEEKB(cub%+(p%-1)*10+q%)<>46
+	r%=-1
+ENDIF
+IF d%<>0
+	IF PEEKB(lin%+(p%-1)*10+d%)<>46
+		r%=-1
+	ENDIF
+	IF PEEKB(col%+(q%-1)*10+d%)<>46
+		r%=-1
+	ENDIF
+	t%=cons%:(p%,q%)
+	IF PEEKB(squ%+(t%-1)*10+d%)<>46
+		r%=-1
+	ENDIF
+ENDIF
+RETURN r%
+ENDP
+
+
+PROC cons%:(p%,q%)
+LOCAL r%
+r%=(q%-1)/3
+r%=r%*3+(p%+2)/3
+RETURN r%
+ENDP
+
+

@@ -1,0 +1,299 @@
+PROC main:
+GLOBAL cub$(99),lin$(99),col$(99),squ$(99)
+GLOBAL cub%,lin%,col%,squ%
+GLOBAL j%,guess%,pgdn%,tox%
+GLOBAL lis%(4000),nuts%
+GLOBAL f%(9),nl%,x1%,y1%,z1%
+GLOBAL num%,nam$(50)
+LOCAL bt%,x%,ed%,y%,pt%
+LOADM "sudoku2"
+guess%=0 : num%=999 
+CLS
+AT 10,4: PRINT"sudoku solver v2.0"
+PAUSE 40
+CLS
+x%=0 : nuts%=0
+cub%=ADDR(cub$)
+lin%=ADDR(lin$)
+col%=ADDR(col$)
+squ%=ADDR(squ$)
+x%=1 : pt%=ASC(".")
+DO
+	POKEB cub%+x%,pt%
+	POKEB lin%+x%,pt%
+	POKEB col%+x%,pt%
+	POKEB squ%+x%,pt%
+	x%=x%+1
+UNTIL x%=99
+ed%=set1%:
+IF ed%=0
+	bt%=calc%:
+	IF bt%=1: rept: :ENDIF
+ENDIF
+ENDP
+
+
+PROC rept:
+IF nam$<>"" : sav:(2) : ENDIF
+AT 12,1 : PRINT"FINISHED" : PAUSE 0
+CLS
+ENDP
+
+PROC sav:(s%)
+LOCAL g$(1),x%,y%,r%,hd%,l%,pq%
+pq%=0
+IF s%=0
+	DO
+		rid:
+		AT 13,1 : PRINT"PUZZLE NUMBER ? ";
+		TRAP INPUT num%
+	IF ERR=-114 : pq%=-1 : BREAK : ENDIF
+	UNTIL ERR=0 AND num%>0 AND num%<1000
+nam$="\OPD\sud"+GEN$(num%,3)
+ENDIF
+rid:
+IF pq%=0
+	IF s%=2 : nam$=nam$+"f" : ENDIF
+	nam$=nam$+".dat"
+	g$="y"
+	IF EXIST(nam$) AND s%<>2
+		AT 13,1 : PRINT"OVERWRITE (y/n) ? ";
+		g$=GET$
+	ENDIF
+	rid:
+	IF g$="y"
+		r%=IOOPEN(hd%,nam$,$0102)
+		IF r%>=0
+			GIPRINT "SAVING"
+			r%=IOWRITE(hd%,cub%,99)
+			r%=IOWRITE(hd%,lin%,99)
+			r%=IOWRITE(hd%,col%,99)
+			r%=IOWRITE(hd%,squ%,99)
+			r%=IOCLOSE(hd%)
+		ENDIF
+	ENDIF
+ENDIF
+ENDP
+
+PROC lod:
+LOCAL c$(10),x%,y%,z%,r%,l$(1),hd%
+LOCAL pq%
+LOCAL nam1$(255)
+nuts%=0 : pq%=0
+nam1$="\OPD\*.dat"
+dINIT
+dFILE nam1$,"load",2
+DIALOG
+r%=IOOPEN(hd%,nam1$,0)
+r%=IOREAD(hd%,cub%,99)
+r%=IOREAD(hd%,lin%,99)
+r%=IOREAD(hd%,col%,99)
+r%=IOREAD(hd%,squ%,99)
+IOCLOSE(hd%)
+x%=1
+DO
+	y%=1
+	DO
+		l$=CHR$(PEEKB(cub%+(x%-1)*10+y%))
+		AT x%,y%
+		IF l$<>"."
+			PRINT l$ : nuts%=nuts%+1
+		ELSE
+			SPLAG:(x%,y%)
+		ENDIF
+		y%=y%+1
+	UNTIL y%=10
+	x%=x%+1
+UNTIL x%=10
+nam$=LEFT$(nam1$,LEN(nam1$)-4)
+ENDP
+
+PROC rid:
+AT 13,1 : PRINT"                    "
+ENDP
+
+PROC set1%:
+LOCAL dd%,w%,t%,x%,p%,q%,c%
+LOCAL b%,fin%,ed%,tot%,tt%,y%,z%
+p%=0 : ed%=0 : fin%=0 : nl%=0
+lis%(1)=-1
+lis%(2)=-1
+lis%(3)=-1
+lis%(4)=0
+nl%=4
+DO
+	q%=0 : tot%=0
+	p%=p%+1
+	DO
+		q%=q%+1
+		splag:(p%,q%)
+	UNTIL q%=9
+UNTIL p%=9
+AT 13,3: PRINT"ESC to complete"
+AT 13,4: PRINT"S   to save"
+AT 13,5: PRINT"L   to load"
+AT 13,6: PRINT"E   to end"
+p%=1: q%=1
+CURSOR ON
+DO
+	AT p%,q%
+	x%=GET
+	IF x%=27
+		BREAK
+	ENDIF
+	IF x%=ASC("S"): sav:(0) :ENDIF
+	IF x%=ASC("L"): lod: :ENDIF
+	IF x%=ASC("E")
+		ed%=1
+		x%=27
+		BREAK
+	ENDIF
+	IF x%=32: x%=48: ENDIF
+	IF x%>47 AND x%<58
+		sets:(p%,q%,x%)
+		p%=p%+1
+	ENDIF
+	IF x%=258: p%=p%+1: ENDIF
+	IF x%=259: p%=p%-1: ENDIF
+	IF x%=256: q%=q%-1: ENDIF
+	IF x%=257: q%=q%+1: ENDIF
+	IF p%<1
+		IF q%>1
+			q%=q%-1: p%=9
+		ELSE
+			p%=1
+		ENDIF
+	ENDIF
+	IF p%>9
+		IF q%<9
+			q%=q%+1
+			p%=1
+		ELSE
+			p%=9
+		ENDIF
+	ENDIF
+	IF q%<1: q%=1: ENDIF
+	IF q%>9: q%=9: ENDIF
+UNTIL x%=27
+RETURN ed%
+ENDP
+
+PROC calc%:
+GLOBAL tot%
+GLOBAL w1%,tox%
+LOCAL x2%,y2%,z2%,xc%
+LOCAL ups%
+LOCAL bt%,e$(1),w%,t%,x%,p%,q%,c%,pq%
+LOCAL tat%,v%,pass%,b%,fin%,tt%,fn%,y%,z%
+LOCAL ff%,pots%,sh%,sm%,ss%,h%,m%,s%,tims%
+LOCAL c$(10),d$(10),fz%
+guess%=0 : fin%=0 : fn%=0 : pgdn%=0
+pass%=0 : bt%=0 :
+sh%=HOUR : sm%=MINUTE : ss%=SECOND
+AT 13,3:PRINT"               "
+AT 13,4:PRINT"               "
+AT 13,5:PRINT"               "
+AT 13,6:PRINT"               "
+x1%=1 : y1%=1 : z1%=1 : tox%=0
+gAT 79,79 : gFILL 160,1,0
+DO
+	h%=HOUR-sh% : m%=MINUTE-sm% : s%=SECOND-ss%
+	IF s%<0 : s%=s%+60 : m%=m%-1 : ENDIF
+	IF m%<0 : m%=m%+60 : h%=h%-1 : ENDIF
+	IF h%<0 : h%=h%+24 : ENDIF
+	tims%=(h%*60+m%)*60+s%
+	pass%=pass%+1
+	x%=1 : j%=0
+	tot%=0: tt%=0
+	AT 13,2 : PRINT"pass  ";pass%;"    "
+	IF guess%>0
+		AT 13,3 : PRINT"guess ";guess%;"         "
+	ELSE
+		AT 13,3 : PRINT"                   "
+	ENDIF     
+	AT 13,4 : PRINT"time  ";tims%;"s    "
+	pots%=(40*nuts%)/81
+	gSCROLL 2,0,80,40,160,40
+	gAT 80,80-pots%
+	gFILL 2,pots%,0
+	p%=1 : pq%=0 : xc%=9
+	DO
+		e$=KEY$
+		IF ASC(e$)=27 : bt%=1 : BREAK : ENDIF
+		q%=1
+		DO
+			AT p%,q%
+			d$=CHR$(PEEKB(cub%+(p%-1)*10+q%))
+			IF d$="."
+				tt%=1 : tat%=0
+				z%=1
+				tox%=0
+				j%=1
+				IF z%<10
+					DO
+						fz%=chq%:(p%,q%,z%+48)
+						IF fz%=0
+							tat%=tat%+1 : j%=0
+							IF tat%=1 : v%=z% : ENDIF
+						ENDIF
+						z%=z%+1
+					UNTIL z%=10
+					IF j%=1 : BREAK : ENDIF
+					IF tat%<xc%
+						xc%=tat% : x2%=p%
+						y2%=q% 
+					ENDIF
+					IF tat%=1
+						tot%=tot%+1
+						spin:(p%,q%,v%+48,1)
+					ENDIF
+				ENDIF
+			ENDIF
+			q%=q%+1
+		UNTIL q%=10 OR j%=1
+		p%=p%+1
+	UNTIL p%=10 OR j%=1
+	IF bt%=1 : BREAK : ENDIF
+	IF j%=0
+		IF tt%=0
+			fin%=1
+		ENDIF
+		IF tot%=0
+			z%=0
+			DO
+				z%=z%+1
+				fz%=chq%:(x2%,y2%,z%+48)
+				IF fz%=0 : z1%=z% : BREAK : ENDIF
+			UNTIL z%=9
+		guess%=guess%+1
+		spin:(x2%,y2%,z%+48,1)
+		ENDIF
+	ELSE
+		pq%=pgg%:
+		j%=0
+	ENDIF
+UNTIL fin%=1 OR pq%<0
+RETURN fin%
+ENDP
+
+PROC pgg%:
+LOCAL fz%,ups%,pq%,z%
+ups%=0
+DO
+	pq%=pgup%:
+	IF pq%<0 : BREAK : ENDIF
+	z%=z1%+1-48
+	IF z%<=9
+		DO
+			fz%=chq%:(x1%,y1%,z%+48)
+			IF fz%=0 : ups%=1 : BREAK : ENDIF
+			z%=z%+1
+		UNTIL z%>9
+	ENDIF
+UNTIL ups%=1
+IF ups%=1
+	guess%=guess%+1
+	spin:(x1%,y1%,z%+48,1)
+ENDIF
+RETURN pq%
+ENDP
